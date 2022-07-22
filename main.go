@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var httpC http.Client = http.Client{}
@@ -45,15 +46,16 @@ func BuildWeatherInfoString(w WeatherInfo) string {
 	s := ""
 	for _, v := range w.Data.Forecast {
 		s += v.Date + ", "
-		s += v.High + ", "
-		s += v.Low + ", "
+		s += v.Type + ", "
+		s += v.Low[strings.Index(v.Low, " "):] + " ~ "
+		s += v.High[strings.Index(v.High, " "):] + ", "
 		s += v.Fengxiang + "\n"
 	}
 	return s
 }
-func getWeather() (weatherInfo WeatherInfo, err error) {
+func getWeather(city string) (weatherInfo WeatherInfo, err error) {
 	// http://wthrcdn.etouch.cn/weather_mini?city=广州
-	result, err1 := HttpGet(httpC, "http://wthrcdn.etouch.cn/weather_mini?city=%E5%B9%BF%E5%B7%9E")
+	result, err1 := HttpGet(httpC, "http://wthrcdn.etouch.cn/weather_mini?city="+city)
 	if err1 != nil {
 		err = err1
 		return
@@ -64,12 +66,19 @@ func getWeather() (weatherInfo WeatherInfo, err error) {
 	return
 }
 func index(w http.ResponseWriter, r *http.Request) {
-	weatherInfo, err := getWeather()
+	log.Println("Request From", r.Host)
+	weatherInfo, err := getWeather(r.URL.Query().Get("city"))
 	if err != nil {
+		w.Write([]byte(err.Error()))
 		return
 	}
-	w.Write([]byte(BuildWeatherInfoString(weatherInfo)))
+	if weatherInfo.Status == 1000 {
+		w.Write([]byte(BuildWeatherInfoString(weatherInfo)))
+		return
+	}
+	w.Write([]byte("GET ERROR"))
 }
+
 // CGO_ENABLED=0  GOOS=linux  GOARCH=amd64  go build main.go
 func main() {
 	log.Println("服务器启动成功:9901")
