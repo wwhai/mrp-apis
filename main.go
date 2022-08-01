@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var httpC http.Client = http.Client{}
@@ -126,10 +127,16 @@ func Phone(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("GET ERROR"))
 }
 
+func GivenTime(w http.ResponseWriter, r *http.Request) {
+	currentTime := time.Now()
+	w.Write([]byte(currentTime.Format("2006-01-02 15:04:05")))
+}
+
 // CGO_ENABLED=0  GOOS=linux  GOARCH=amd64  go build main.go
 func main() {
 	log.Println("服务器启动成功:9901")
 	http.HandleFunc("/", Weather)
 	http.HandleFunc("/p", Phone)
+	http.HandleFunc("/t", GivenTime)
 	http.ListenAndServe(":9901", nil)
 }
